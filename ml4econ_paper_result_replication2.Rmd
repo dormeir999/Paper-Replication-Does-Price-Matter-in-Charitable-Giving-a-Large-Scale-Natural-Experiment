@@ -1,0 +1,494 @@
+---
+title: "ml4econ_paper_results_replication"
+author: "Dor Meir"
+date: "July 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Part 1: Does Price Matter in Charitable Giving? Evidence from a Large-Scale Natural Field Experiment replication
+
+In this post we will Conduct a replication study based on one of the datasets included in the experimentdatar package. 
+
+# The experimentdatar data package
+
+The experimentdatar data package contains publicly available
+datasets that were used in Susan Athey and Guido Imbens' course "Machine Learning and Econometrics" (AEA continuing Education, 2018). let's install the package:
+
+```{r , echo=FALSE}
+#install.packages("dplyr", repos = "http://cran.us.r-project.org", dependencies = TRUE)
+install.packages("devtools", repos = "http://cran.us.r-project.org")
+devtools::install_github("itamarcaspi/experimentdatar")
+library(experimentdatar)
+data(vouchers)
+dat <- vouchers
+```
+
+# About the paper
+
+The chosen dataset is vouchers, which is used for the paperfor the paper “Vouchers for Private Schooling in Colombia: Evidence from a Randomized Natural Experiment” by Angrist, Bettinger, Bloom, King, and Kremer (2002).
+
+The paper had several results:
+
+"Colombia used lotteries to distribute vouchers which partially covered the cost of private secondary school for students who maintained satisfactory academic progress. Three years after the lotteries, winners were about 10 percentage points more likely to have finished 8th grade, primarily because they were less likely to repeat grades, and scored 0.2 standard deviations higher on achievement tests. There is some evidence that winners worked less than losers and were less likely to marry or cohabit as teenagers. Benefits to participants likely exceeded the $24 per winner additional cost to the government of supplying vouchers instead of publics chool places. (JEL I22, J13, I28)"
+...
+This paper presents evidence on the impact of one of the largest school voucher programs to date, the Programa de Ampliacio´n de Cobertura de la Educacio´n Secundaria (PACES), a Colombian initiative that provided over 125,000 pupils with vouchers covering somewhat more than half the cost of private secondary school. Vouchers were renewable as long as students maintained satisfactory academic performance.
+...
+The test results suggest that, on average, lottery winners scored about 0.2 standard deviations higher than losers, a large but only marginally significant difference. The effect on girls is larger and more precisely estimated than the effect on boys.
+...
+A number of channels could potentially account for the PACES program’s effects on participants. The program clearly shifted some participants from public to private school, and pupils who shifted may have benefitted from the opportunity to attend private schools. There is also evidence that some pupils who would have attended private school anyway were able to attend more expensive private schools. Finally, voucher recipients may have had greater incentives to focus on school because vouchers could
+only be renewed for those pupils who did not repeat grades.
+...
+There is little evidence of any association between win/loss status and the individual
+characteristics measured in our data from Bogota´, although winners and losers are less
+comparable in the 1993 Jamundi cohort. 
+...
+The estimates of lottery effects are based on the following regression model: 
+
+$$ y_{ic} =  X'_i\beta_0 + \alpha_0 Z_i + \delta_c + \varepsilon_{ic}$$
+where $y_{ic}$ is the dependent variable for child i from application cohort c (defined by city and year); $X_i$ represents a vector of individual and survey characteristics like $age, sex,$ and whether the survey was $telephone$ or in person; $\Zi$ is an indicator for whether child i won the voucher lottery; and $\delta_c$ is an applicant cohort effect to control for the fact that the probability of winning
+varied by city and year. The coefficient of interest is $\alpha_0$. The researches estimated (1) using three sets of control variables: “no controls,” i.e., excluding
+the Xi variables; “basic controls” including the Xi variables; and “basic plus barrio controls” which includes the $X_i$ variables plus 19 neighborhood dummies in the Bogota´-95 sample.
+
+The regression estimates are from models that include controls for city, year of application, phone access, age, type of survey and instrument, strata of residence, and
+month of interview.
+
+## Replicating Table 3 — EDUCATIONAL OUTCOMES AND VOUCHER STATUS
+
+Table 3 is replicated using published SAS program for table 3 in the Angrist Data Archive on the mit economics website:
+http://economics.mit.edu/faculty/angrist/data1/data/angetal02 
+
+# An Important Warning about the accuary of the dataset and the estimation
+
+First, as mentioned in the website above, "...these files do not always produce an exact match to the 2002 results". As you'll see below, the number of observations is not correct, even though we used the exact same subsets of data in the SAS programs. Even though, it appears the estimated depentendts in this post are quite close to the original ones.
+Also, There was no exact indication which program variables fit which table dependent variables, and so the variables were identified using variables names, types (binary or not) and outcome values, as follows:
+SCYFNSH	- Highest grade completed
+INSCHL	- Currently in school,
+FINISH6	- Finished 6th grade,
+FINISH7	- Finished 7th grade,
+FINISH8	- Finished 8th grade,
+PRSCHA_1 - Started 6th grade in private school,
+PRSCHA_2 - Started 7thgrade in private school,
+PRSCH_C	- Currently in private school,
+NREPT	  - Ever repeated after lottery,
+REPT6	  - Repetitions of 6th grade,
+TOTSCYRS -	Years in school since lottery,
+STRATAMS - Total repetitions since lottery (the difference between the outcomes below and the outcomes in the paper suggests it is not a correct identificication of the variable),
+USNGSCH	- Using any scholarship in survey year.
+Lastly, "The Ever used a scholarship"" dependent variable, which assumed to be USESCH in the table 7 program, appears to be missing from the assigned vouchers dataset and therefore is ommited from the model.
+
+# create the table 3 dataset:
+
+1) Keep observations from the Bogota 95,97 or Jamundi 93 samples only
+2) Keep the relavent 37 variables + 12 months of interview + 19 barrio (neigborhoods) variables
+3) sort dat_table3 dataset by VOUCH0, a binary for receiving the treamtment.
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE, results=FALSE}
+dat_table3<-subset(dat, (BOG95SMP==1 | BOG97SMP==1 | JAM93SMP==1))
+dat_table3<-dat_table3[c("ID","VOUCH0","BOG95SMP","BOG97SMP","JAM93SMP","AGE2","SCYFNSH","INSCHL","FINISH6","FINISH7","FINISH8","PRSCHA_1","PRSCHA_2","PRSCH_C","REPT6","REPT","NREPT","TOTSCYRS","USNGSCH","SVY","HSVISIT","DJAMUNDI","PHONE","AGE","SEX2","DBOGOTA","D1993","D1995","D1997","DMONTH1","DMONTH2","DMONTH3","DMONTH4","DMONTH5","DMONTH6","DMONTH7","DMONTH8","DMONTH9","DMONTH10","DMONTH11","DMONTH12","STRATA1","STRATA2","STRATA3","STRATA4","STRATA5","STRATA6","STRATAMS","DAREA1","DAREA10","DAREA11","DAREA12","DAREA13","DAREA14","DAREA15","DAREA16","DAREA17","DAREA18","DAREA19","DAREA2","DAREA3","DAREA4","DAREA5","DAREA6","DAREA7","DAREA8","DAREA9","SEX_MISS")]
+sort(dat_table3$VOUCH0)
+```
+
+# 1. Create the 'Bogota 95 Losers (1)' means column:
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+Bogota_95_Losers <- subset(dat_table3, VOUCH0==0 & BOG95SMP==1)
+#detach(dat_table3)
+attach(Bogota_95_Losers)
+df <- data.frame()
+options(digits=3)
+means_sd_n <- c(round(mean(SCYFNSH,na.rm = TRUE),digits = 3),paste("(",round(sd(SCYFNSH,na.rm = TRUE),digits = 3),")"),round(mean(INSCHL,na.rm = TRUE),digits = 3),paste("(",round(sd(INSCHL,na.rm = TRUE),digits = 3),")"),round(mean(FINISH6,na.rm = TRUE),digits = 3),paste("(",round(sd(FINISH6,na.rm = TRUE),digits = 3),")"),round(mean(FINISH7,na.rm = TRUE),digits = 3),paste("(",round(sd(FINISH7,na.rm = TRUE),digits = 3),")"),round(mean(FINISH8,na.rm = TRUE),digits = 3),paste("(",round(sd(FINISH8,na.rm = TRUE),digits = 3),")"),round(mean(PRSCHA_1,na.rm = TRUE),digits = 3),paste("(",round(sd(PRSCHA_1,na.rm = TRUE),digits = 3),")"),round(mean(PRSCHA_2,na.rm = TRUE),digits = 3),paste("(",round(sd(PRSCHA_2,na.rm = TRUE),digits = 3),")"),round(mean(PRSCH_C,na.rm = TRUE),digits = 3),paste("(",round(sd(PRSCH_C,na.rm = TRUE),digits = 3),")"),round(mean(REPT6,na.rm = TRUE),digits = 3),paste("(",round(sd(REPT6,na.rm = TRUE),digits = 3),")"),round(mean(NREPT,na.rm = TRUE),digits = 3),paste("(",round(sd(NREPT,na.rm = TRUE),digits = 3),")"),round(mean(TOTSCYRS,na.rm = TRUE),digits = 3),paste("(",round(sd(TOTSCYRS,na.rm = TRUE),digits = 3),")"),round(mean(STRATAMS,na.rm = TRUE),digits = 3),paste("(",round(sd(STRATAMS,na.rm = TRUE),digits = 3),")"),round(mean(USNGSCH,na.rm = TRUE),digits = 3),paste("(",round(sd(USNGSCH,na.rm = TRUE),digits = 3),")"),nrow(Bogota_95_Losers))
+df <- means_sd_n
+table_3<-`.rowNamesDF<-`(df,make.names=TRUE,c("Highest grade
+completed","sd","Currently in school","sd","Finished 6th grade","sd","Finished 7th grade
+(excludes Bogota´ 97)","sd","Finished 8th grade
+(excludes Bogota´ 97)","sd","Started 6th grade in
+private","sd","Started 7th grade in
+private","sd","Currently in private
+school","sd","Repetitions of 6th grade","sd","Ever repeated after
+lottery","sd","Years in school since
+lottery","sd","Total repetitions since
+lottery","sd","Using any scholarship
+in survey year","sd","Sample Size"))
+table_3 <- data.frame(table_3)
+# Rename the column:
+detach(Bogota_95_Losers)
+```
+
+# 2. Create estimated effects of winning a voucher columns
+
+# The 'Combined - Basic controls (5)' column:
+
+fit a regression model for the dependent variables, and for each model obtain both the estimated effect of winning a voucher on the dependent estimates and the standard error from the heteroscedasticity-corrected covariance matrix:
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+install.packages("car", repos = "http://cran.us.r-project.org")
+library(car)
+attach(dat_table3)
+# The list of dependents (FINISH7-8 will be estimated again excluding bogota 97):
+df_dependents <- data.frame(SCYFNSH,INSCHL,FINISH6,FINISH7,FINISH8,PRSCHA_1,PRSCHA_2,PRSCH_C,REPT6,REPT,NREPT,TOTSCYRS,USNGSCH)
+# The new table column:
+table_3 <- cbind(table_3, "Combined basic controls"=0)
+table_3 <- data.frame(table_3)
+options(digits=3)
+# Run all models:
+for (i in 1:length(df_dependents)){
+  model <- lm(formula = df_dependents[,i] ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 + SEX_MISS, data = dat_table3)
+  # The estimated effect of Winning a voucher on the dependent:
+  vouch0_effect <- model$coefficients["VOUCH0"]
+  vouch0_effect <- round(vouch0_effect, digits = 3)
+  table_3[i*2-1,"Combined.basic.controls"] <- vouch0_effect
+  # The heteroscedasticity-corrected covariance matrix:
+  vcov <- data.frame(hccm(model, type = "hc0"))
+  # Obtain the standart error of the dependent, as they are given by      the square root of the element in the main diagonal of the matrix:
+  vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+  vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+  table_3[i*2,"Combined.basic.controls"] <- vouch0_se
+}
+table_3["Sample.Size","Combined.basic.controls"] <- nobs(model)
+
+## Calculating FINISH7-8 from the Bogota97 excluded data subset:
+
+# FINISH7:
+Bogota_97_excluded <- subset(dat_table3, (BOG95SMP==1 | JAM93SMP))
+model <- lm(formula = FINISH7 ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 + SEX_MISS, data = Bogota_97_excluded)
+vouch0_effect <- model$coefficients["VOUCH0"]
+vouch0_effect <- round(vouch0_effect, digits = 3)
+table_3["Finished.7th.grade..excludes.Bogota..97.","Combined.basic.controls"] <- vouch0_effect
+vcov <- data.frame(hccm(model, type = "hc0"))
+vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+table_3["sd.3","Combined.basic.controls"] <- vouch0_se
+# FINISH8:
+model <- lm(formula = FINISH8 ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 + SEX_MISS, data = Bogota_97_excluded)
+vouch0_effect <- model$coefficients["VOUCH0"]
+vouch0_effect <- round(vouch0_effect, digits = 3)
+table_3["Finished.8th.grade..excludes.Bogota..97.","Combined.basic.controls"] <- vouch0_effect
+vcov <- data.frame(hccm(model, type = "hc0"))
+vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+table_3["sd.4","Combined.basic.controls"] <- vouch0_se
+# Rename the column:
+colnames(table_3)[1] <- "Bogota 95 Losers means (1)"
+colnames(table_3)[2] <- "Combined - Basic controls (5)"
+```
+
+# The 'Combined - Basic + 19 barrio controls (6)' column:
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+# The list of dependents (FINISH7-8 will be estimated again excluding bogota 97):
+df_dependents <- data.frame(SCYFNSH,INSCHL,FINISH6,FINISH7,FINISH8,PRSCHA_1,PRSCHA_2,PRSCH_C,REPT6,REPT,NREPT,TOTSCYRS,USNGSCH)
+# The new table column:
+table_3 <- cbind(table_3, "temporary_name"=0)
+options(digits=3)
+# Run all models:
+for (i in 1:length(df_dependents)){
+  model <- lm(formula = df_dependents[,i] ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 +  SEX_MISS + DAREA1 + DAREA2 + DAREA3+ DAREA4 + DAREA5 + DAREA6 + DAREA7 + DAREA8 + DAREA9 + DAREA10 + DAREA11 + DAREA12 + DAREA13 + DAREA14 + DAREA15 + DAREA16 + DAREA17 + DAREA18 + DAREA19, data = dat_table3)
+  # The estimated effect of Winning a voucher on the dependent:
+  vouch0_effect <- model$coefficients["VOUCH0"]
+  vouch0_effect <- round(vouch0_effect, digits = 3)
+  table_3[i*2-1,"temporary_name"] <- vouch0_effect
+  # The heteroscedasticity-corrected covariance matrix:
+  vcov <- data.frame(hccm(model, type = "hc0"))
+  # Obtain the standart error of the dependent, as they are given by      the square root of the element in the main diagonal of the matrix:
+  vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+  vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+  table_3[i*2,"temporary_name"] <- vouch0_se
+}
+table_3["Sample.Size","temporary_name"] <- nobs(model)
+
+## Calculating FINISH7-8 from the Bogota97 excluded data subset:
+
+# FINISH7:
+model <- lm(formula = FINISH7 ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 + SEX_MISS + DAREA1 + DAREA2 + DAREA3+ DAREA4 + DAREA5 + DAREA6 + DAREA7 + DAREA8 + DAREA9 + DAREA10 + DAREA11 + DAREA12 + DAREA13 + DAREA14 + DAREA15 + DAREA16 + DAREA17 + DAREA18 + DAREA19, data = Bogota_97_excluded)
+vouch0_effect <- model$coefficients["VOUCH0"]
+vouch0_effect <- round(vouch0_effect, digits = 3)
+table_3["Finished.7th.grade..excludes.Bogota..97.","temporary_name"] <- vouch0_effect
+vcov <- data.frame(hccm(model, type = "hc0"))
+vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+table_3["sd.3","temporary_name"] <- vouch0_se
+# FINISH8:
+model <- lm(formula = FINISH8 ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 + SEX_MISS + DAREA1 + DAREA2 + DAREA3+ DAREA4 + DAREA5 + DAREA6 + DAREA7 + DAREA8 + DAREA9 + DAREA10 + DAREA11 + DAREA12 + DAREA13 + DAREA14 + DAREA15 + DAREA16 + DAREA17 + DAREA18 + DAREA19, data = Bogota_97_excluded)
+vouch0_effect <- model$coefficients["VOUCH0"]
+vouch0_effect <- round(vouch0_effect, digits = 3)
+table_3["Finished.8th.grade..excludes.Bogota..97.","temporary_name"] <- vouch0_effect
+vcov <- data.frame(hccm(model, type = "hc0"))
+vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+table_3["sd.4","temporary_name"] <- vouch0_se
+# Rename the column:
+colnames(table_3)[3] <- "Combined - Basic + 19 barrio controls (6)"
+```
+
+# The 'Bogota 95 - No controls (2)' column:
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+detach(dat_table3)
+Bogota_95 <- subset(dat_table3, BOG95SMP==1)
+attach(Bogota_95)
+# The list of dependents (FINISH7-8 will be estimated again excluding bogota 97):
+df_dependents <- data.frame(SCYFNSH,INSCHL,FINISH6,FINISH7,FINISH8,PRSCHA_1,PRSCHA_2,PRSCH_C,REPT6,REPT,NREPT,TOTSCYRS,USNGSCH)
+# The new table column:
+table_3 <- cbind(table_3, "temporary_name"=0)
+options(digits=3)
+# Run all models:
+for (i in 1:length(df_dependents)){
+  model <- lm(formula = df_dependents[,i] ~ VOUCH0, data = Bogota_95)
+  # The estimated effect of Winning a voucher on the dependent:
+  vouch0_effect <- model$coefficients["VOUCH0"]
+  vouch0_effect <- round(vouch0_effect, digits = 3)
+  table_3[i*2-1,"temporary_name"] <- vouch0_effect
+  # The heteroscedasticity-corrected covariance matrix:
+  vcov <- data.frame(hccm(model, type = "hc0"))
+  # Obtain the standart error of the dependent, as they are given by      the square root of the element in the main diagonal of the matrix:
+  vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+  vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+  table_3[i*2,"temporary_name"] <- vouch0_se
+}
+table_3["Sample.Size","temporary_name"] <- nobs(model)
+
+# Rename the column:
+colnames(table_3)[4] <- "Bogota 95 - No controls (2)"
+```
+
+# The 'Bogota 95 - Basic controls (3)' column:
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+# The list of dependents (FINISH7-8 will be estimated again excluding bogota 97):
+df_dependents <- data.frame(SCYFNSH,INSCHL,FINISH6,FINISH7,FINISH8,PRSCHA_1,PRSCHA_2,PRSCH_C,REPT6,REPT,NREPT,TOTSCYRS,USNGSCH)
+# The new table column:
+table_3 <- cbind(table_3, "temporary_name"=0)
+options(digits=3)
+# Run all models:
+for (i in 1:length(df_dependents)){
+  model <- lm(formula = df_dependents[,i] ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 + SEX_MISS, data = Bogota_95)
+  # The estimated effect of Winning a voucher on the dependent:
+  vouch0_effect <- model$coefficients["VOUCH0"]
+  vouch0_effect <- round(vouch0_effect, digits = 3)
+  table_3[i*2-1,"temporary_name"] <- vouch0_effect
+  # The heteroscedasticity-corrected covariance matrix:
+  vcov <- data.frame(hccm(model, type = "hc0"))
+  # Obtain the standart error of the dependent, as they are given by      the square root of the element in the main diagonal of the matrix:
+  vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+  vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+  table_3[i*2,"temporary_name"] <- vouch0_se
+}
+table_3["Sample.Size","temporary_name"] <- nobs(model)
+
+# Rename the column:
+colnames(table_3)[5] <- "Bogota 95 - Basic controls (3)"
+```
+
+# Last Column: 'Bogota 95 - Basic + 19 barrio controls (4)':
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+# The list of dependents (FINISH7-8 will be estimated again excluding bogota 97):
+df_dependents <- data.frame(SCYFNSH,INSCHL,FINISH6,FINISH7,FINISH8,PRSCHA_1,PRSCHA_2,PRSCH_C,REPT6,REPT,NREPT,TOTSCYRS,USNGSCH)
+# The new table column:
+table_3 <- cbind(table_3, "temporary_name"=0)
+options(digits=3)
+# Run all models:
+for (i in 1:length(df_dependents)){
+  model <- lm(formula = df_dependents[,i] ~ VOUCH0 + SVY + HSVISIT + DJAMUNDI + PHONE + AGE + SEX2 + STRATA1 + STRATA2 + STRATA3 + STRATA4 + STRATA5 + STRATA6 + STRATAMS + DBOGOTA + D1993 + D1995 + D1997 + DMONTH1 + DMONTH2 + DMONTH3 + DMONTH4 + DMONTH5 + DMONTH6 + DMONTH7 + DMONTH8 + DMONTH9 + DMONTH10 + DMONTH11 + DMONTH12 +  SEX_MISS + DAREA1 + DAREA2 + DAREA3+ DAREA4 + DAREA5 + DAREA6 + DAREA7 + DAREA8 + DAREA9 + DAREA10 + DAREA11 + DAREA12 + DAREA13 + DAREA14 + DAREA15 + DAREA16 + DAREA17 + DAREA18 + DAREA19, data = Bogota_95)
+  # The estimated effect of Winning a voucher on the dependent:
+  vouch0_effect <- model$coefficients["VOUCH0"]
+  vouch0_effect <- round(vouch0_effect, digits = 3)
+  table_3[i*2-1,"temporary_name"] <- vouch0_effect
+  # The heteroscedasticity-corrected covariance matrix:
+  vcov <- data.frame(hccm(model, type = "hc0"))
+  # Obtain the standart error of the dependent, as they are given by      the square root of the element in the main diagonal of the matrix:
+  vouch0_se <- sqrt(vcov["VOUCH0","VOUCH0"])
+  vouch0_se <- paste("(",round(vouch0_se, digits = 3),")")
+  table_3[i*2,"temporary_name"] <- vouch0_se
+}
+table_3["Sample.Size","temporary_name"] <- nobs(model)
+
+# Rename the column:
+colnames(table_3)[6] <- "Bogota 95 - Basic + 19 barrio controls (4)"
+detach(Bogota_95)
+```
+
+
+# Reordering the columns and rows and changing the dependent variables names:
+
+```{r, echo=TRUE,message=FALSE, warning=FALSE}
+table_3 <- table_3[c(25,26,11,12,13,14,15,16,1,2,3,4,5,6,7,8,9,10,17,18,19,20,23,24,21,22,27),]
+table_3 <- table_3[c(1,4,5,6,2,3)]
+rownames(table_3) <- c("Using any scholarship","in survey  year","Started 6th grade ","in private","Started 7th grade"," in private","Currently in ","private school","Highest grade","completed","Currently in","school","Finished 6th","grade","Finished 7th","grade (excludes Bogota´ 97)","Finished 8th"," grade (excludes Bogota´ 97)","Repetitions of 6th"," grade","Ever repeated after","lottery","Total repetitions since"," lottery","Years in school since "," lottery ","Sample size")
+```
+
+
+Print the final replicated table:
+
+```{r , echo=FALSE,message=FALSE, warning=FALSE}
+#install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+devtools::install_github("haozhu233/kableExtra")
+library(knitr)
+#library(kableExtra)
+#knitr::kable(table_3, caption = "The replicated table 3", format.args = )
+#kable(table_3)
+kable(table_3,format = "html" )
+```
+
+Compare the replicated table estimates to the original one:
+
+```{r , echo=FALSE, fig.cap="The original table 3", out.width = '80%'}
+knitr::include_graphics("table_3_paper.PNG")
+```
+
+
+### Part 2: Extentions to the paper
+
+Since there are only 89 features and a lot of obervation (25,330), we fear less from biased treatment effect and have no particular problem with the dimentionalty of the model.
+Nevertheless, it might be intersting to understand if the Voucher treamtment effect is significantly different across subsets of the population. we already know "The effect on girls is larger and more precisely estimated than the effect on boys", and that the paper found "little evidence of any association between win/loss status and the individual
+characteristics measured in our data from Bogota´...". 
+
+We'll use the causalTree package, which "builds a regression model and returns an rpart object, which is the object derived from rpart package, implementing many ideas in the CART... Like rpart, causalTree builds a binary regression tree model in two stages, but focuses on estimating heterogeneous causal effect."
+
+let's install and load the package:
+```{r , echo=TRUE,message=FALSE, warning=FALSE}
+install.packages("devtools", repos = "http://cran.us.r-project.org")
+library(devtools)
+devtools::install_github("susanathey/causalTree")
+library(causalTree)
+```
+
+First, we define the outcome, treatment and other covariates. 
+Our dataset remains the dat_table3, which includes sample from Bogota 1995 & 1997 and Jamundi 1993.
+Our outcome variable will be "Finished 8th grade (excludes Bogota´ 97)" - FINISH8, that was higher in voucher winners in 7-11%. The treatment effect will be winning a voucher - VOUCH0, and the controls will be the controls from "Basic + 19
+barrio controls" model, which led to the smallest effect of winning a voucher on finishinf the 8th grade.
+
+```{r , echo=TRUE,message=FALSE, warning=FALSE}
+attach(dat_table3)
+Y <- "FINISH8"
+D <- "VOUCH0"
+X <- c("SVY","HSVISIT","DJAMUNDI","PHONE","AGE","SEX2","STRATA1","STRATA2","STRATA3","STRATA4","STRATA5","STRATA6","STRATAMS","DBOGOTA","D1993","D1995","D1997","DMONTH1","DMONTH2","DMONTH3","DMONTH4","DMONTH5","DMONTH6","DMONTH7","DMONTH8","DMONTH9","DMONTH10","DMONTH11","DMONTH12","SEX_MISS","DAREA1","DAREA2","DAREA3","DAREA4","DAREA5","DAREA6","DAREA7","DAREA8","DAREA9","DAREA10","DAREA11","DAREA12","DAREA13","DAREA14","DAREA15","DAREA16","DAREA17","DAREA18","DAREA19")
+```
+
+# Data wrangling
+
+Install and Load data and modelling packages:
+
+```{r , echo=TRUE,message=FALSE, warning=FALSE}
+install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+library(tidyverse)
+install.packages("tidymodels", repos = "http://cran.us.r-project.org")
+#install.packages("rstan", repos = "http://cran.us.r-project.org")
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyvers, svglite, kabelExtra, RefManageR,
+truncnorm, tidymodels, knitr, mlbench, ggdag)
+install.packages("rstan", repos = "http://cran.us.r-project.org")
+library(tidymodels)
+```
+
+Set seed for replication and rename the outcome and treatment variables:
+
+
+```{r , echo=TRUE,message=FALSE, warning=FALSE}
+df <- dat_table3 %>%
+select(Y, D, X) %>%
+rename(Y = FINISH8, D = VOUCH0)
+```
+
+Before we start, we need to split our sample to a training and estimaton sets, where training
+will be used to construct the tree and estimation for honest estimation of ??:
+
+```{r , echo=TRUE,message=FALSE, warning=FALSE}
+df_split <- initial_split(df, prop = 0.5)
+df_tr <- training(df_split)
+df_est <- testing(df_split)
+```
+
+# Estimate causal tree
+
+We now proceed to estimating the tree using the CT-H approach:
+
+```{r , echo=TRUE,message=FALSE, warning=FALSE}
+tree <- honest.causalTree("I(Y) ~ . - D",
+                  data=df_tr,
+                  treatment=df_tr$D,
+                  est_data=df_est,
+                  est_treatment=df_est$D,
+                  split.Rule="CT",
+                  split.Honest=TRUE,
+                  split.Bucket=TRUE,
+                  bucketNum=5,
+                  bucketMax=100,
+                  cv.option="CT",
+                  cv.Honest=TRUE,
+                  minsize=200,
+                  split.alpha=0.5,
+                  cv.alpha=0.5,
+                  HonestSampleSize=nrow(df_est),
+                  cp=0)
+```
+
+
+
+
+
+
+
+<!-- # The right set of independent variables -->
+
+<!-- The effects of winning a voucher columns were estimated using control over several variables: city, year of application, phone access, age, type of survey and instrument, strata of residence, and month of interview. -->
+
+<!-- Let's check if that's the "correct" set of variables, using LASSO: -->
+
+
+<!-- # Check for confounders -->
+
+<!-- Let's check no important variables were omitted by LASSO. -->
+
+
+
+<!-- Exploring the data -->
+
+
+<!-- ```{r , echo=FALSE} -->
+<!-- library("experimentdatar") -->
+<!-- dat <- vouchers -->
+<!-- str(dat) -->
+<!-- head(dat) -->
+<!-- summary(dat) -->
+<!-- ``` -->
+
+<!-- There are 25330 obs. and  89 variables. -->
+
+<!-- Here's a list of all variables: -->
+
+<!-- ```{r pressure, echo=FALSE} -->
+<!-- ls(dat) -->
+<!-- ``` -->
+
+
+<!-- First, let us check if there are any missing values: -->
+
+<!-- ```{r, echo=TRUE} -->
+<!-- length(which(is.na(dat))) -->
+<!-- ``` -->
+
+<!-- There are quite a few missing... -->
+
+<!-- find non-quantitative variables: -->
+
+<!-- ```{r, echo=TRUE} -->
+<!-- colnames(dat[,sapply(dat,class)=="factor"]) -->
+<!-- ``` -->
+
+<!-- There are no non-quantitive variables. -->
+
+<!-- Now let us scale the variables without ID (that is, subtract their mean and divide by their standard error), and create a box plot of the scaled variables. -->
+
+<!-- ```{r, echo=TRUE} -->
+<!-- dat_scaled <- scale(dat[-1]) -->
+<!-- boxplot(dat_scaled) -->
+<!-- ``` -->
+
+<!-- Some variables have many extream values... -->
+
+

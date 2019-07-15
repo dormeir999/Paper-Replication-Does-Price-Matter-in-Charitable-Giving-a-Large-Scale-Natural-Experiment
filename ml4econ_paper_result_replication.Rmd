@@ -1,0 +1,38 @@
+---
+title: "ml4econ_paper_results_replication"
+author: "Dor Meir"
+date: "July 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Does Price Matter in Charitable Giving? Evidence from a Large-Scale Natural Field Experiment replication
+
+In this post we will Conduct a replication study based on one of the datasets included in the experimentdatar package. 
+
+# The experimentdatar data package
+
+The experimentdatar data package contains publicly available
+datasets that were used in Susan Athey and Guido Imbens' course "Machine Learning and Econometrics" (AEA continuing Education, 2018). let's install the package:
+
+```{r , echo=FALSE}
+install.packages("devtools")
+devtools::install_github("itamarcaspi/experimentdatar")
+```
+
+
+
+
+```{r pressure, echo=FALSE}
+library("experimentdatar")
+dat <- charitable
+
+```
+The chosen dataset is the charitable data, which is used for the paper "Does Price matter in charitable giving? Evidence from a large-Scale Natural Field experiment" by Karlan and List (2007)."
+
+The paper had several results:
+"Colombia used lotteries to distribute vouchers which partially covered the cost of private secondary school for students who maintained satisfactory academic progress. Three years after the lotteries, winners were about 10 percentage points more likely to have  nished 8th grade, primarily because they were less likely to repeat grades, and scored 0.2 standard deviations higher on achievement tests. There is some evidence that winners worked less than losers and were less likely to marry or cohabit as teenagers. Bene ts to participants likely exceeded the $24 per winner additional cost to the government of supplying vouchers instead of publicschool places. (JEL I22, J13, I28)"
+
