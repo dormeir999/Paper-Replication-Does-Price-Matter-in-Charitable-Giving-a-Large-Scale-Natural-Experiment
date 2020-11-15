@@ -1,5 +1,5 @@
 # Paper Replication: Does Price Matter in Charitable Giving? Evidence from a Large-Scale Natural Field Experiment
-Paper Replication: Does Price  Matter in Charitable Giving? Evidence from a Large-Scale Natural Field Experiment https://economics.mit.edu/files/24
+https://economics.mit.edu/files/24
 
 ![alt text](https://github.com/dormeir999/ml4econ_paper_replication_and_heterogeneous_treatment_effects_analysis/blob/master/photos/ml4econ_paper_results_replication-page-001.jpg)
 ![alt text](https://github.com/dormeir999/ml4econ_paper_replication_and_heterogeneous_treatment_effects_analysis/blob/master/photos/ml4econ_paper_results_replication-page-002.jpg)
